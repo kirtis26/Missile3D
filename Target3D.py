@@ -1,8 +1,10 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[ ]:
-
+import numpy as np
+from easyvec import Vec3, Mat3
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from ipywidgets import interact, FloatSlider
+from matplotlib.patches import FancyArrowPatch
+from mpl_toolkits.mplot3d.proj3d import proj_transform
 
 import numpy as np
 from easyvec import Vec3, Mat3
@@ -12,21 +14,18 @@ from ipywidgets import interact, FloatSlider
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d.proj3d import proj_transform
 
-
-# In[ ]:
-
-
 class Target3D(object):
        
     @classmethod
-    def get_simple_target(cls, pos, vel, aim, vel_aim, g=9.80665, dt=0.01, time_min=True):
+    def get_simple_target(cls, pos, vel, aim, vel_aim, g=9.80665, dt=0.01, time_min=True, postProcessing=True):
         pos = cls._validate_dimension_argument(pos)
         vel = cls._validate_dimension_argument(vel)
         aim = cls._validate_dimension_argument(aim)
         vel_aim = cls._validate_dimension_argument(vel_aim)
-        target = cls(pos=pos, vel=vel, aim=aim, vel_aim=vel_aim, g=g, dt=dt, time_min=time_min)
+        target = cls(pos=pos, vel=vel, aim=aim, vel_aim=vel_aim, g=g, dt=dt,
+                     time_min=time_min, postProcessing=postProcessing)
         parameters_simple_target = np.array([pos[0], pos[1], pos[2], vel[0], vel[1], vel[2], 0])
-        target.set_init_cond(init_parametrs=parameters_simple_target)
+        target.set_initial_condition(init_parametrs=parameters_simple_target)
         return target
     
     def __init__(self, **kwargs):
@@ -45,6 +44,18 @@ class Target3D(object):
         self.n = 7
         self.state = np.zeros(self.n)
         self.state_init = np.zeros(self.n)
+        
+        self.postProcessing = kwargs['postProcessing']
+        self.history = {
+                'x': [],
+                'y': [],
+                'z': [],
+                'v_abs': [],
+                'vx': [],
+                'vy': [],
+                'vz': [],
+                't': []
+            }
     
     @property
     def pos(self):
@@ -82,16 +93,37 @@ class Target3D(object):
     def vel_z(self):
         return self.vel[2]
     
-    def set_init_cond(self, init_parametrs=None):
+    def set_initial_condition(self, init_parametrs=None):
         if init_parametrs is None:
-            init_parametrs = self.get_random_parameters_of_target()
+            init_parametrs = self.get_random_parameters()
         self.state = np.array(init_parametrs)
         self.state_init = np.array(init_parametrs)
 
-    def get_random_parameters_of_target(self):
+    def get_random_parameters(self):
         # TODO
         pass
     
+    def step(self, tau=0.1, n=10):
+        
+        t = self.t  
+        dt = tau / n
+        
+        for i in range(n):
+            t += dt
+            self.t = t
+            state = [self.x, self.y, self.z, self.vel_x, self.vel_y, self.vel_z, t]
+            self.set_state(state)
+            
+            if self.postProcessing:
+                self.history['x'].append(self.x)
+                self.history['y'].append(self.y)
+                self.history['z'].append(self.z)
+                self.history['v_abs'].append(self.vel_abs)
+                self.history['vx'].append(self.vel_x)
+                self.history['vy'].append(self.vel_y)
+                self.history['vz'].append(self.vel_z)
+                self.history['t'].append(self.t)
+                
     def reset(self):
         self.set_state(self.state_init)
 
@@ -151,7 +183,7 @@ class Target3D(object):
     
     def get_fly_time_random(self):
         fly_time_A = ((self.A - self.D).len() / self.velA.len())
-        fly_time_D = ((self.A - self.D).len() / self.velD.len())
+        fly_time_D = (self.A - self.D).len() / self.velD.len()
         fly_time_min = min(fly_time_A, fly_time_D)
         fly_time_max = max(fly_time_A, fly_time_D)
         return np.random.uniform(fly_time_min, fly_time_max)
@@ -182,7 +214,7 @@ class Target3D(object):
         C = self.get_C(fly_time)
         tau = t / self.fly_time 
         return 6 * ((tau-1)*(B-A) + (1-2*tau)*(C-B) + tau*(D-C)) / (fly_time**2)
-    
+
 #     def get_amax(self, fly_time, vel_trg=None, g=Vec3(0, -9.80665, 0)):
 #         vel_trg = self.velD if vel_trg == None else vel_trg
 #         A, velA = self.pos, self.velA
@@ -247,14 +279,14 @@ class Target3D(object):
     
     def to_dict(self):
         return { 
-            't': self.t,
-            'x': self.x,
-            'y': self.y,
-            'z': self.z,
-            'v': self.vel_abs,
-            'vx': self.vel[0],
-            'vy': self.vel[1],
-            'vz': self.vel[2]
+            't': self.history['t'],
+            'x': self.history['x'],
+            'y': self.history['y'],
+            'z': self.history['z'],
+            'vel': self.history['v_abs'],
+            'vx': self.history['vx'],
+            'vy': self.history['vy'],
+            'vz': self.history['vz']
         }
     
     def _set_fly_time(self, time_min=True):
