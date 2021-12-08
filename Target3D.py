@@ -1,18 +1,5 @@
 import numpy as np
 from easyvec import Vec3, Mat3
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from ipywidgets import interact, FloatSlider
-from matplotlib.patches import FancyArrowPatch
-from mpl_toolkits.mplot3d.proj3d import proj_transform
-
-import numpy as np
-from easyvec import Vec3, Mat3
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from ipywidgets import interact, FloatSlider
-from matplotlib.patches import FancyArrowPatch
-from mpl_toolkits.mplot3d.proj3d import proj_transform
 
 class Target3D(object):
        
@@ -56,6 +43,10 @@ class Target3D(object):
                 'vz': [],
                 't': []
             }
+    
+    @property
+    def G(self):
+        return Vec3(0, -self.g, 0)
     
     @property
     def pos(self):
@@ -187,6 +178,42 @@ class Target3D(object):
         fly_time_min = min(fly_time_A, fly_time_D)
         fly_time_max = max(fly_time_A, fly_time_D)
         return np.random.uniform(fly_time_min, fly_time_max)
+
+    def get_vel_min(self, delta_t, n=51):
+        BA = self.B.sub_vec(self.A)
+        CB = self.C.sub_vec(self.B)
+        DC = self.D.sub_vec(self.C)
+        min_v = 1e6
+        dt = 1.0 / (n - 1)
+        for i in range(n):
+            t = i * dt
+            vel_len = (BA.mul_num(3*(1-t)*(1-t)/delta_t).add_vec(CB.mul_num(6*t*(1-t)/delta_t)).add_vec(DC.mul_num(3*t*t/delta_t))).len() 
+            if vel_len < min_v:
+                min_v = vel_len
+        return min_v    
+    
+    def get_vel_max(self, delta_t, n=51):
+        BA = self.B.sub_vec(self.A)
+        CB = self.C.sub_vec(self.B)
+        DC = self.D.sub_vec(self.C)
+        max_v = 0
+        dt = 1.0 / (n - 1)
+        for i in range(n):
+            t = i * dt
+            vel_len = (BA.mul_num(3*(1-t)*(1-t)/delta_t).add_vec(CB.mul_num(6*t*(1-t)/delta_t)).add_vec(DC.mul_num(3*t*t/delta_t))).len() 
+            if vel_len > max_v:
+                max_v = vel_len
+        return max_v   
+    
+    def get_amax(self, fly_time=None):
+        fly_time = fly_time if fly_time != None else self.fly_time
+        A, velA = self.A, self.velA
+        D, velD = self.D, self.velD
+        B = self.get_B(fly_time)
+        C = self.get_C(fly_time)
+        a1 = (C - B) * 6 - (B - A) * 6 - self.G
+        a2 = (D - C) * 6 - (C - B) * 6 - self.G
+        return np.fmax(a1.len(), a2.len()) / (fly_time**2)
     
     def _fpos(self, t, fly_time=None):
         fly_time = fly_time if fly_time != None else self.fly_time
@@ -214,76 +241,14 @@ class Target3D(object):
         C = self.get_C(fly_time)
         tau = t / self.fly_time 
         return 6 * ((tau-1)*(B-A) + (1-2*tau)*(C-B) + tau*(D-C)) / (fly_time**2)
-
-#     def get_amax(self, fly_time, vel_trg=None, g=Vec3(0, -9.80665, 0)):
-#         vel_trg = self.velD if vel_trg == None else vel_trg
-#         A, velA = self.pos, self.velA
-#         D, velD = self.D, vel_trg
-#         B = get_B(fly_time)
-#         C = get_C(fly_time)
-#         a1 = (C - B) * 6 - (B - A) * 6 - g
-#         a2 = (D - C) * 6 - (C - B) * 6 - g
-#         return np.fmax(a1.len(), a2.len()) / (fly_time**2)
-
-#       cpdef (double, double) get_max_v_a(double delta_t, Vec2 A, Vec2 B, Vec2 C, Vec2 D, int n=33, int rounds=3, bint inc_g=False):
-#     cdef Vec2 BA = B.sub_vec(A)
-#     cdef Vec2 CB = C.sub_vec(B)
-#     cdef Vec2 DC = D.sub_vec(C)
-#     cdef double min_v = 1e13
-#     cdef double max_v = 0
-#     cdef int i, j, imax
-#     cdef double dt = 1.0 / (n-1)
-#     cdef double t, vel_len, t0, t1
-#     t0 = 0.0
-#     t1 = 1.0
-#     for j in range(rounds):
-#         dt = (t1-t0) / (n-1)
-#         for i in range(n):
-#             t = t0 + i * dt
-#             vel_len = (BA.mul_num(3*(1-t)*(1-t)/delta_t).add_vec(CB.mul_num(6*t*(1-t)/delta_t)).add_vec(DC.mul_num(3*t*t/delta_t))).len() 
-#             if vel_len > max_v:
-#                 max_v = vel_len
-#                 imax = i
-#         t = t0 + imax * dt
-#         t0 = t - dt
-#         t1 = t + dt
-#         if t0 < 0:
-#             t0 = 0.0
-#         if t1 > 1:
-#             t1 = 1.0
-#     cdef Vec2 g = Vec2(0, 0)
-#     if inc_g:
-#         g.y = -9.81
-#     cdef Vec2 a1 = ((CB.mul_num(6)).sub_vec(BA.mul_num(6))).sub_vec(g)
-#     cdef Vec2 a2 = ((DC.mul_num(6)).sub_vec(CB.mul_num(6))).sub_vec(g)
-#     return max_v, fmax(a1.len(), a2.len())/delta_t/delta_t
-
-#     cpdef (double, double) get_min_max_v(double delta_t, Vec2 A, Vec2 B, Vec2 C, Vec2 D, int n=42):
-#     cdef Vec2 BA = B.sub_vec(A)
-#     cdef Vec2 CB = C.sub_vec(B)
-#     cdef Vec2 DC = D.sub_vec(C)
-#     cdef double min_v = 1e13
-#     cdef double max_v = 0
-#     cdef int i
-#     cdef double dt = 1.0 / (n-1)
-#     cdef double t, vel_len
-#     for i in range(n):
-#         t = i * dt
-#         vel_len = (BA.mul_num(3*(1-t)*(1-t)/delta_t).add_vec(CB.mul_num(6*t*(1-t)/delta_t)).add_vec(DC.mul_num(3*t*t/delta_t))).len() 
-#         # print(t, vel_len)
-#         if vel_len < min_v:
-#             min_v = vel_len
-#         if vel_len > max_v:
-#             max_v = vel_len
-#     return min_v, max_v
-    
+ 
     def to_dict(self):
         return { 
             't': self.history['t'],
             'x': self.history['x'],
             'y': self.history['y'],
             'z': self.history['z'],
-            'vel': self.history['v_abs'],
+            'v': self.history['v_abs'],
             'vx': self.history['vx'],
             'vy': self.history['vy'],
             'vz': self.history['vz']
