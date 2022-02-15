@@ -1,13 +1,14 @@
 import numpy as np
-from easyvec import Vec3, Mat3
+from easyvec import Vec3
 
 class Target3D(object):
        
     @classmethod
-    def get_simple_target(cls, pos, vel, aim, vel_aim, g=9.80665, dt=0.01, time_min=True, postProcessing=True):
+    def get_simple_target(cls, opts, time_min, postProcessing, g=9.80665, dt=0.01):
+        pos, pos_aim, vel, vel_aim = opts['pos'], opts['pos_aim'], opts['vel'], opts['vel_aim'],
         pos = cls._validate_dimension_argument(pos)
         vel = cls._validate_dimension_argument(vel)
-        aim = cls._validate_dimension_argument(aim)
+        aim = cls._validate_dimension_argument(pos_aim)
         vel_aim = cls._validate_dimension_argument(vel_aim)
         target = cls(pos=pos, vel=vel, aim=aim, vel_aim=vel_aim, g=g, dt=dt,
                      time_min=time_min, postProcessing=postProcessing)
@@ -260,7 +261,7 @@ class Target3D(object):
     @staticmethod
     def _validate_dimension_argument(array, n=3):
         if len(array) == 0:
-            return Vec3(0,0,0)            
+            return Vec3(0, 0, 0)
         elif len(array) == n:
             try:
                 l = [float(elem) for elem in array]

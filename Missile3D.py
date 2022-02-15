@@ -8,7 +8,7 @@ from aero_info import *
 class Missile3D(object):
     
     @classmethod
-    def get_missile(cls, opts):
+    def get_missile(cls, opts, **kwargs):
         """
         Классовый метод создания ракеты со всеми необходимыми аэродинамическими, массо- и тяговременными характеристиками.
         Ракета является управляемой, использующая самонаведение методом пропорционального сближения.
@@ -62,7 +62,7 @@ class Missile3D(object):
         G_marsh = w_marsh / t_marsh
         r_explosion = opts.get('r_explosion', 25)
         am = opts.get('am', 4.5)
-        postProcessing = opts.get('record', True)
+        postProcessing = kwargs['postProcessing']
         
         x_cm_0 = opts['x_cm_0'] / L
         x_cm_k = opts['x_cm_k'] / L
