@@ -117,7 +117,7 @@ class GymFlight(object):
         ax_1.plot(res['missile']['pos'][:, 0], res['missile']['pos'][:, 1], label='Траектория ракеты')
         ax_1.plot(res['target']['x'], res['target']['y'], label='Траектория цели')
 
-        ax_2.plot(res['missile']['pos'][:, 2], res['missile']['pos'][:, 1])
+        ax_2.plot(res['missile']['pos'][:, 2], res['missile']['pos'][:, 0])
         ax_2.plot(res['target']['z'], res['target']['x'])
 
         ax_3.plot(res['missile']['pos'][:, 2], res['missile']['pos'][:, 1])
