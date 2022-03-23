@@ -1,9 +1,9 @@
 import numpy as np
-import numpy.random as rd
 from easyvec import Vec3, Mat3
 from interpolation import Interp1d, Interp2d
 from math import *
 from aero_info import *
+
 
 class Missile3D(object):
     
@@ -88,14 +88,14 @@ class Missile3D(object):
         arr_mx_delta = opts['mx_delta'] 
         arr_mx_wx = opts['mx_wx']          
         
-        ts    = np.linspace(0, t_marsh, 100)
+        ts = np.linspace(0, t_marsh, 100)
         m_itr = Interp1d(ts, get_m(ts))
         P_itr = Interp1d(ts, get_P(ts))
         atm_itr = table_atm
         Cy_alpha_itr = Interp1d(arr_mach, arr_cy_alpha)
         Cy_delta_itr = Interp1d(arr_mach, arr_cy_delta)
         mz_wz_itr = Interp1d(arr_mach, arr_mz_wz)
-        mx_delta_itr = Interp1d(arr_delta, arr_mx_delta)
+        mx_delta_itr = None # TODO: Interp1d(arr_delta, arr_mx_delta)
         mx_wx_itr = Interp1d(arr_mach, arr_mx_wx)
         x_pres_itr = Interp1d(ts, get_x_pres(ts))
         x_mass_itr = Interp1d(ts, get_x_cm(ts))
@@ -404,11 +404,11 @@ class Missile3D(object):
     
     @property
     def Y(self):
-        return (self.Cy_alpha_itr(self.mach_abs) * self.alpha * self.q_abs * self.S_mid +                self.Cy_delta_itr(self.mach_abs) * self.delta_alpha * self.q_abs * self.S_mid) if self.vel_abs > 1e-5 else 0
+        return (self.Cy_alpha_itr(self.mach_abs) * self.alpha * self.q_abs * self.S_mid + self.Cy_delta_itr(self.mach_abs) * self.delta_alpha * self.q_abs * self.S_mid) if self.vel_abs > 1e-5 else 0
     
     @property
     def Z(self):
-        return (self.Cy_alpha_itr(self.mach_abs) * self.betta * self.q_abs * self.S_mid +                self.Cy_delta_itr(self.mach_abs) * self.delta_betta * self.q_abs * self.S_mid) if self.vel_abs > 1e-5 else 0
+        return (self.Cy_alpha_itr(self.mach_abs) * self.betta * self.q_abs * self.S_mid + self.Cy_delta_itr(self.mach_abs) * self.delta_betta * self.q_abs * self.S_mid) if self.vel_abs > 1e-5 else 0
     
     @property
     def Force_inertial(self):
@@ -734,10 +734,10 @@ class Missile3D(object):
     def to_dict(self):
         return {
             't': self.history['t'],
-            'pos': [(self.history['x'][i], self.history['y'][i], self.history['z'][i]) for i in range(len(self.history['t']))],
-            'vel': [(self.history['vx'][i], self.history['vy'][i], self.history['vz'][i]) for i in range(len(self.history['t']))],
-            'q': [(self.history['qw'][i], self.history['qx'][i], self.history['qy'][i], self.history['qz'][i]) for i in range(len(self.history['x']))],
-            'w': [(self.history['wx'][i], self.history['wy'][i], self.history['wz'][i]) for i in range(len(self.history['t']))],
+            'pos': np.array([[self.history['x'][i], self.history['y'][i], self.history['z'][i]] for i in range(len(self.history['t']))]),
+            'vel': np.array([[self.history['vx'][i], self.history['vy'][i], self.history['vz'][i]] for i in range(len(self.history['t']))]),
+            'q': np.array([[self.history['qw'][i], self.history['qx'][i], self.history['qy'][i], self.history['qz'][i]] for i in range(len(self.history['x']))]),
+            'w': np.array([[self.history['wx'][i], self.history['wy'][i], self.history['wz'][i]] for i in range(len(self.history['t']))]),
         }    
         
     def _matrix_transition(self):

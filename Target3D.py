@@ -1,6 +1,7 @@
 import numpy as np
 from easyvec import Vec3
 
+
 class Target3D(object):
        
     @classmethod
