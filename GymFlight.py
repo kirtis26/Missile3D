@@ -2,9 +2,18 @@ import numpy as np
 from Missile3D import Missile3D
 from Target3D import Target3D
 import matplotlib.pyplot as plt
+from easyvec import Vec3
 
 
 class GymFlight(object):
+
+    scenario_names = {'standard', }  # TODO: сделать сэт сценариев
+    standard_target_opts = {
+        'pos': Vec3(8e3, 1.5e3, 0),
+        'pos_aim': Vec3(-100, 0, 100),
+        'vel': Vec3(-100, 10, 10),
+        'vel_aim': Vec3(-100, -10, -10)
+    }
 
     @classmethod
     def make_simple_scenario(cls,
@@ -23,6 +32,33 @@ class GymFlight(object):
                                          postProcessing=postProcessing)
         mis.set_initial_parameters_of_missile(trg)
         return cls(mis=mis, trg=trg, n_step=n_step, tau=tau, ndt=ndt, t_max=t_max)
+
+    @classmethod
+    def make_scenario(cls,
+                      missile_opts,
+                      scenario_name=None,
+                      target_opts=None,
+                      tau=0.5,
+                      ndt=10,
+                      n_step=50,
+                      t_max=50,
+                      fly_time_min=False,
+                      postProcessing=True):
+        key_args = tau, ndt, n_step, t_max, fly_time_min, postProcessing
+        if scenario_name is not None and scenario_name not in cls.scenario_names:
+            raise AttributeError(f'Error! Unknown scenario: "{scenario_name}" \n'
+                                 f'Available scenarios: {cls.scenario_names}')
+        elif scenario_name is None:
+            if target_opts is None:
+                raise AttributeError(f'Error! Argument Key "target_opts" does not: "{target_opts}" \n'
+                                     f'Example: {cls.standard_target_opts}')
+            else:
+                return cls.make_simple_scenario(missile_opts, target_opts, *key_args)
+        elif scenario_name == 'standard':
+            return cls.make_simple_scenario(missile_opts, cls.standard_target_opts, *key_args)
+        elif scenario_name == 'random':
+            return cls.make_simple_scenario(missile_opts, Target3D.get_random_parameters(), *key_args)
+        # TODO: доделать сценарии
 
     def __init__(self, **kwargs):
         self.missile = kwargs['mis']

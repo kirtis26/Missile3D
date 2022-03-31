@@ -3,7 +3,7 @@ from easyvec import Vec3
 
 
 class Target3D(object):
-       
+
     @classmethod
     def get_simple_target(cls, opts, time_min, postProcessing, g=9.80665, dt=0.01):
         pos, pos_aim, vel, vel_aim = opts['pos'], opts['pos_aim'], opts['vel'], opts['vel_aim'],
@@ -14,9 +14,9 @@ class Target3D(object):
         target = cls(pos=pos, vel=vel, aim=aim, vel_aim=vel_aim, g=g, dt=dt,
                      time_min=time_min, postProcessing=postProcessing)
         parameters_simple_target = np.array([pos[0], pos[1], pos[2], vel[0], vel[1], vel[2], 0])
-        target.set_initial_condition(init_parametrs=parameters_simple_target)
+        target.set_initial_condition(init_parameters=parameters_simple_target)
         return target
-    
+
     def __init__(self, **kwargs):
         self.g = kwargs['g']
         self.t = 0
@@ -86,15 +86,15 @@ class Target3D(object):
     def vel_z(self):
         return self.vel[2]
     
-    def set_initial_condition(self, init_parametrs=None):
-        if init_parametrs is None:
-            init_parametrs = self.get_random_parameters()
-        self.state = np.array(init_parametrs)
-        self.state_init = np.array(init_parametrs)
+    def set_initial_condition(self, init_parameters=None):
+        if init_parameters is None:
+            init_parameters = self.get_random_parameters()
+        self.state = np.array(init_parameters)
+        self.state_init = np.array(init_parameters)
 
     def get_random_parameters(self):
         # TODO
-        pass
+        return
     
     def step(self, tau=0.1, n=10):
         
@@ -136,7 +136,7 @@ class Target3D(object):
         return self.D - (self.velD * fly_time / 3)
     
     def get_traject(self, fly_time, vel_aim=None, n_points=100):
-        vel_aim = self.velD if vel_aim == None else vel_aim
+        vel_aim = self.velD if vel_aim is None else vel_aim
         taus = np.linspace(0, 1, n_points)
         A, velA = self.A, self.velA
         D, velD = self.D, vel_aim
@@ -147,7 +147,7 @@ class Target3D(object):
             for tau in taus])
     
     def get_traject_vels(self, fly_time, vel_aim=None, n_points=100):
-        vel_aim = self.velD if vel_aim == None else vel_aim
+        vel_aim = self.velD if vel_aim is None else vel_aim
         taus = np.linspace(0, 1, n_points)
         A, velA = self.A, self.velA
         D, velD = self.D, vel_aim
@@ -159,7 +159,7 @@ class Target3D(object):
         ])
     
     def get_traject_acc(self, fly_time, vel_aim=None, n_points=100):
-        vel_aim = self.velD if vel_aim == None else vel_aim
+        vel_aim = self.velD if vel_aim is None else vel_aim
         taus = np.linspace(0, 1, n_points)
         A, velA = self.A, self.velA
         D, velD = self.D, vel_aim
@@ -170,9 +170,15 @@ class Target3D(object):
             for tau in taus
         ])
     
-    def get_fly_time_minimum(self):
-        # TODO
-        pass
+    def get_fly_time_minimum(self, ny):
+        # TODO: помаксимальной перегрузке вычислить время
+        # n = overload if overload != None else self.overload
+        #         for i in :
+        #             a_max = self.get_acc_max(fly_time)
+        #             if (a_max / self.g) > n_max:
+        #                 n_max = a_max / self.g
+        #         return
+        return 0
     
     def get_fly_time_random(self):
         fly_time_A = ((self.A - self.D).len() / self.velA.len())
@@ -181,7 +187,7 @@ class Target3D(object):
         fly_time_max = max(fly_time_A, fly_time_D)
         return np.random.uniform(fly_time_min, fly_time_max)
 
-    def get_vel_min(self, delta_t, n=51):
+    def get_vel_min(self, fly_time, n=51):
         BA = self.B.sub_vec(self.A)
         CB = self.C.sub_vec(self.B)
         DC = self.D.sub_vec(self.C)
@@ -189,7 +195,7 @@ class Target3D(object):
         dt = 1.0 / (n - 1)
         for i in range(n):
             t = i * dt
-            vel_len = (BA.mul_num(3*(1-t)*(1-t)/delta_t).add_vec(CB.mul_num(6*t*(1-t)/delta_t)).add_vec(DC.mul_num(3*t*t/delta_t))).len() 
+            vel_len = (BA.mul_num(3*(1-t)*(1-t)/fly_time).add_vec(CB.mul_num(6*t*(1-t)/fly_time)).add_vec(DC.mul_num(3*t*t/fly_time))).len()
             if vel_len < min_v:
                 min_v = vel_len
         return min_v    
@@ -207,18 +213,15 @@ class Target3D(object):
                 max_v = vel_len
         return max_v   
     
-    def get_amax(self, fly_time=None):
-        fly_time = fly_time if fly_time != None else self.fly_time
-        A, velA = self.A, self.velA
-        D, velD = self.D, self.velD
-        B = self.get_B(fly_time)
-        C = self.get_C(fly_time)
-        a1 = (C - B) * 6 - (B - A) * 6 - self.G
-        a2 = (D - C) * 6 - (C - B) * 6 - self.G
+    def get_acc_max(self, fly_time=None):
+        fly_time = fly_time if fly_time is not None else self.fly_time
+        B, C = self.get_B(fly_time), self.get_C(fly_time)
+        a1 = (C - B) * 6 - (B - self.A) * 6 - self.G
+        a2 = (self.D - C) * 6 - (C - B) * 6 - self.G
         return np.fmax(a1.len(), a2.len()) / (fly_time**2)
     
     def _fpos(self, t, fly_time=None):
-        fly_time = fly_time if fly_time != None else self.fly_time
+        fly_time = fly_time if fly_time is not None else self.fly_time
         A, velA = self.A, self.velA
         D, velD = self.D, self.velD
         B = self.get_B(fly_time)
@@ -227,7 +230,7 @@ class Target3D(object):
         return (1-tau)**3 * A + 3*tau*(1-tau)**2 * B + 3*tau*tau*(1-tau)*C + tau**3 * D
     
     def _fvel(self, t, fly_time=None):
-        fly_time = fly_time if fly_time != None else self.fly_time
+        fly_time = fly_time if fly_time is not None else self.fly_time
         A, velA = self.A, self.velA
         D, velD = self.D, self.velD
         B = self.get_B(fly_time)
@@ -236,7 +239,7 @@ class Target3D(object):
         return (3*(1-tau)**2*(B-A) + 6*tau*(1-tau)*(C-B) + 3*tau**2*(D-C)) / fly_time
     
     def _facc(self, t, fly_time=None):
-        fly_time = fly_time if fly_time != None else self.fly_time
+        fly_time = fly_time if fly_time is not None else self.fly_time
         A, velA = self.A, self.velA
         D, velD = self.D, self.velD
         B = self.get_B(fly_time)
