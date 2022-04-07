@@ -61,7 +61,7 @@ class Missile3D(object):
         P_marsh = opts['P_marsh']
         G_marsh = w_marsh / t_marsh
         r_explosion = opts.get('r_explosion', 25)
-        am = opts.get('am', 4.5)
+        am = opts.get('a_m', 4.5)
         postProcessing = kwargs['postProcessing']
         
         x_cm_0 = opts['x_cm_0'] / L
@@ -81,12 +81,12 @@ class Missile3D(object):
         
         arr_alpha = opts['alpha']
         arr_mach = opts['Mach']
-        arr_delta = opts['delta']
+        arr_delta = opts.get('delta', None) # TODO:
         arr_cy_alpha = opts['Cy_alpha']
         arr_cy_delta = opts['Cy_delta']
         arr_mz_wz = opts['mz_wz'] 
-        arr_mx_delta = opts['mx_delta'] 
-        arr_mx_wx = opts['mx_wx']          
+        arr_mx_delta = opts.get('mx_delta', None) # TODO:
+        arr_mx_wx = opts.get('mx_wx', None) # TODO:
         
         ts = np.linspace(0, t_marsh, 100)
         m_itr = Interp1d(ts, get_m(ts))
@@ -95,8 +95,8 @@ class Missile3D(object):
         Cy_alpha_itr = Interp1d(arr_mach, arr_cy_alpha)
         Cy_delta_itr = Interp1d(arr_mach, arr_cy_delta)
         mz_wz_itr = Interp1d(arr_mach, arr_mz_wz)
-        mx_delta_itr = None # TODO: Interp1d(arr_delta, arr_mx_delta)
-        mx_wx_itr = Interp1d(arr_mach, arr_mx_wx)
+        mx_delta_itr = Interp1d(arr_delta, arr_mx_delta) if arr_mx_delta and arr_delta is not None else None
+        mx_wx_itr = Interp1d(arr_mach, arr_mx_wx) if arr_mx_wx is not None else None
         x_pres_itr = Interp1d(ts, get_x_pres(ts))
         x_mass_itr = Interp1d(ts, get_x_cm(ts))
         
