@@ -150,19 +150,23 @@ class GymFlight(object):
 
     def step(self):
         """
-        Метод, делающий шаг во времени tau, на котором управляющее воздействие на ракету постоянно
+        Метод, совершающий шаг во времени tau, на котором управляющее воздействие на ракету постоянно
         """
         self.target.step(tau=self.tau, n=self.ndt)
         self.missile.step(self.missile.get_action_proportional_guidance(self.target), tau=self.tau, n=self.ndt)
 
     def get_info_about_step(self):
         """
-        Метод, возвращающий информацию о проделланом временном шаге tau
+        Метод, возвращающий информацию о проделанном временном шаге tau - проверка остановки расчета
+        returns:
+            {bool}, {str} - флаг остановки, причина остановки
         """
         if self._r_() < self.missile.r_explosion:
             return True, 'target defeat'
         elif self.missile.t > 0 and self.missile.pos[1] <= 0:
             return True, 'missile fail'
+        elif abs(self.missile.alpha_targeting) > 90 or abs(self.missile.betta_targeting) > 90:
+            return True, 'missile miss'
         elif self.missile.t > self.t_max:
             return True, 'long fly time'
         elif self.i_step > self.n_step:
