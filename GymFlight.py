@@ -126,7 +126,7 @@ class GymFlight(object):
         self.t_max = kwargs['t_max']
         self.history = None
 
-    def run(self):
+    def run(self, decr_tau=False, decr_n=100, decr_dist=500):
         """
         Метод класса, запускающий моделирование инициилизированного сценария
         argument: none
@@ -138,6 +138,10 @@ class GymFlight(object):
             self.get_info_about_step()
             self.i_step += 1
             done, info = self.get_info_about_step()
+            if decr_tau and self._r_() < decr_dist:
+                self.tau /= decr_n
+                self.missile.am = 1
+                decr_tau = False
         print(f'Info launch missile: {info}')
         self.history = {'missile': self.missile.history, 'target': self.target.history} if self.missile.postProcessing else self.get_state()
 

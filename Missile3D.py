@@ -536,7 +536,7 @@ class Missile3D(object):
             k2 = self.f_system(t + 0.5 * dt, self._validate_y(y + 0.5 * dt * k1))
             k3 = self.f_system(t + 0.5 * dt, self._validate_y(y + 0.5 * dt * k2))
             k4 = self.f_system(t + dt,       self._validate_y(y + dt * k3))
-            y  = self._validate_y(y + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4))
+            y = self._validate_y(y + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4))
             
             t += dt
             self.t = t
@@ -678,7 +678,7 @@ class Missile3D(object):
         action : {tuple}
                  [float, float]
         """
-        am  = self.am if am == None else am
+        am = self.am if am is None else am
         
         trg_pos_vertical = np.array(Vec3(target.pos[0], target.pos[1], 0))
         trg_vel_vertical = np.array(target.vel - (Vec3(0,0,1).dot(target.vel) * Vec3(0,0,1)))
@@ -705,12 +705,13 @@ class Missile3D(object):
         vel_otn_horizontal = trg_vel_horizontal - mis_vel_horizontal
         vel_otn_tau_horizontal = vis1_horizontal * np.dot(vis1_horizontal, vel_otn_horizontal)
         vel_otn_n_horizontal = vel_otn_horizontal - vel_otn_tau_horizontal
+
+        vis1_horizontal = list(vis1_horizontal[:1]) + list(vis1_horizontal[2:])
+        vel_otn_n_horizontal = list(vel_otn_n_horizontal[:1]) + list(vel_otn_n_horizontal[2:])
         
         # Производные углов визирования
         fi_vertical_der = copysign(np.linalg.norm(vel_otn_n_vertical) / r_vertical,
                                    np.cross(vis1_vertical[:-1], vel_otn_n_vertical[:-1]))
-        vis1_horizontal = list(vis1_horizontal[:1]) + list(vis1_horizontal[2:])
-        vel_otn_n_horizontal = list(vel_otn_n_horizontal[:1]) + list(vel_otn_n_horizontal[2:])
         fi_horizontal_der = copysign(np.linalg.norm(vel_otn_n_horizontal) / r_horizontal,
                                      np.cross(vis1_horizontal, vel_otn_n_horizontal))
 
@@ -726,8 +727,8 @@ class Missile3D(object):
         nYh = vel_h_abs * psi_der / self.g
         
         # Балансировочные углы
-        alpha = (nYv * self.m * self.g) / (self.Cy_alpha_itr(self.mach_abs) * self.q_abs * self.S_mid +                                             self.Cy_delta_itr(self.mach_abs) * self.q_abs * self.S_mid + self.P / 57.3)
-        betta = (nYh * self.m * self.g) / (self.Cy_alpha_itr(self.mach_abs) * self.q_abs * self.S_mid +                                            self.Cy_delta_itr(self.mach_abs) * self.q_abs * self.S_mid + self.P / 57.3)
+        alpha = (nYv * self.m * self.g) / (self.Cy_alpha_itr(self.mach_abs) * self.q_abs * self.S_mid + self.Cy_delta_itr(self.mach_abs) * self.q_abs * self.S_mid + self.P / 57.3)
+        betta = (nYh * self.m * self.g) / (self.Cy_alpha_itr(self.mach_abs) * self.q_abs * self.S_mid + self.Cy_delta_itr(self.mach_abs) * self.q_abs * self.S_mid + self.P / 57.3)
         
         return (alpha/self.angle_max, betta/self.angle_max)
     
